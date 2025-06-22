@@ -45,12 +45,3 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: ghcr.io/${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.tag }}
-
-      - name: Generate installer.yaml
-        run: |
-          sed "s|__IMAGE__|ghcr.io/${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.tag }}|g" manifest/installer.template.yaml > installer.yaml
-
-      - name: Upload installer.yaml to GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: installer.yaml
