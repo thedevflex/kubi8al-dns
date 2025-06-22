@@ -1,0 +1,56 @@
+name: Release Installer
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.21
+
+      - name: Get tag
+        id: vars
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ghcr.io/${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.tag }}
+
+      - name: Generate installer.yaml
+        run: |
+          sed "s|__IMAGE__|ghcr.io/${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.tag }}|g" manifest/installer.template.yaml > installer.yaml
+
+      - name: Upload installer.yaml to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: installer.yaml
