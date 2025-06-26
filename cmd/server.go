@@ -31,7 +31,16 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/routes", s.routesHandler)
 	mux.HandleFunc("/", s.proxyHandler)
 
-	return mux
+	// Wrap the mux with a logging middleware
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		log.Printf("Request started: %s %s %s", r.RemoteAddr, r.Method, r.URL.Path)
+
+		mux.ServeHTTP(w, r)
+
+		duration := time.Since(start)
+		log.Printf("Request completed: %s %s %s (took %v)", r.RemoteAddr, r.Method, r.URL.Path, duration)
+	})
 }
 
 func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
